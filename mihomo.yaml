@@ -1,0 +1,343 @@
+#锚点配置
+#订阅源基础配置
+Provider: &Provider {type: http, interval: 86400, proxy: DIRECT, health-check: {enable: true, url: 'https://www.google.com/generate_204', interval: 300}, filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'}
+
+# 节点筛选正则表达式 - 基于地理位置和关键词过滤
+FilterHK: &FilterHK '^(?=.*(?i)(港|🇭🇰|HK|Hong|HKG))(?!.*(排除1|排除2|5x)).*$'   #香港
+FilterSG: &FilterSG '^(?=.*(?i)(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$'  #新加坡
+FilterJP: &FilterJP '^(?=.*(?i)(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(排除1|排除2|5x)).*$' #日本
+FilterKR: &FilterKR '^(?=.*(?i)(韩|🇰🇷|韓|首尔|南朝鲜|KR|KOR|Korea|South))(?!.*(排除1|排除2|5x)).*$' #韩国
+FilterUS: &FilterUS '^(?=.*(?i)(美|🇺🇸|US|USA|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(排除1|排除2|5x)).*$' #美国
+FilterTW: &FilterTW '^(?=.*(?i)(台|🇼🇸|🇹🇼|TW|tai|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$' #台湾
+FilterEU: &FilterEU '^(?=.*(?i)(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其它|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$'
+FilterOT: &FilterOT '^(?!.*(DIRECT|直接连接|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其它|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇭🇰|🇼🇸|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|HK|TW|SG|JP|KR|US|GB|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW))' #欧盟
+FilterAL: &FilterAL '^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))'
+
+# 策略组类型模板 - 定义不同的策略组基础配置
+# 自动选择 [每 300 秒一次惰性健康检查，容差 50ms，时延超过 2 秒判定为失败，失败 3 次自动触发健康检查]
+UrlTest: &UrlTest {type: url-test, url: 'https://www.google.com/generate_204', interval: 300, lazy: true, tolerance: 50, timeout: 2000, disable-udp: false, max-failed-times: 3, hidden: true, include-all: true}
+# 故障转移 [每 300 秒一次惰性健康检查，时延超过 2 秒判定为失败，失败 3 次自动触发健康检查]
+FallBack: &FallBack {type: fallback, url: 'https://www.google.com/generate_204', interval: 300, lazy: true, timeout: 2000, disable-udp: false, max-failed-times: 3, hidden: true, include-all: true}
+# 负载均衡 [每 300 秒一次惰性健康检查，时延超过 2 秒判定为失败，失败 3 次则自动触发健康检查]
+LoadBalance: &LoadBalance {type: load-balance, url: 'https://www.google.com/generate_204', interval: 300, lazy: true, disable-udp: false, strategy: consistent-hashing, timeout: 2000, max-failed-times: 3, hidden: true, include-all: true}
+
+# 策略组代理列表模板 - 预定义的代理节点优先级排序
+SelectProxy: &SelectProxy {type: select, proxies: [ 智能选择,   香港节点,  日本节点,  韩国节点,  加坡节点,  美国节点,  台湾节点, 欧盟节点,  全部节点, 直接连接]}
+
+# 机场订阅
+proxy-providers: 
+  首选机场: {<<: *Provider, url: '##订阅地址##', override: {additional-prefix: '[首] '}}
+  备选机场:: {<<: *Provider, url: '##订阅地址##', override: {additional-prefix: '[备] '}}
+
+# 全局配置 
+mode: rule  # 工作模式：rule（规则模式）/ global（全局模式）/ direct（直连模式）
+port: 7890  # HTTP(S) 代理服务器端口
+socks-port: 7891  # SOCKS5 代理端口
+redir-port: 7892  # 透明代理端口，用于 Linux 和 MacOS
+mixed-port: 7893  # HTTP(S) 和 SOCKS 代理混合端口
+tproxy-port: 7895 # TProxy 端口（Linux 环境的透明代理）
+ipv6: true  # 开启 IPv6 总开关，关闭阻断所有 IPv6 链接和屏蔽 DNS 请求 AAAA 记录
+allow-lan: true   # 是否允许局域网连接，true 表示允许其他设备通过本机代理上网
+bind-address: "*" # 绑定IP地址，仅作用于allow-lan为true, "*" 表示所有网卡，可指定IP
+lan-allowed-ips: # 允许连接的 IP 地址段, 默认值为 0.0.0.0/0 和::/0
+  - 0.0.0.0/0
+  - ::/0
+lan-disallowed-ips: # 禁止连接的 IP 地址段，disallowed优先级高于allowed
+  - 192.168.0.3/32  
+unified-delay: true  # 统一延迟计算，使延迟测试更准确
+tcp-concurrent: true # 是否启用 TCP 并发，可提高连接性能
+log-level: warning   # 日志等级：silent(静默)/error(错误)/warning(警告)/info(信息)/debug(调试)
+find-process-mode: 'off'  #控制是否让 nikki去匹配进程。
+# interface-name: en0  # 设置出口网卡
+global-client-fingerprint: chrome
+global-ua: clash.meta  #全局UA，默认clash.meta
+
+#TCP keep-alive配置
+keep-alive-idle: 600
+keep-alive-interval: 15
+disable-keep-alive: false  #允许长链接一直存在，安卓端会强制设定为true
+
+# 认证配置
+authentication:  # http,socks 用户验证，不写禁用全部用户
+  - shane:Ty19825690  #用户名:密码
+skip-auth-prefixes: # 设置跳过验证的 IP 段
+  - 10.10.10.0/24   #IPV4设置
+  - ::1/128        #IPV6设置
+
+# 配置存储
+profile:
+  store-selected: true # 是否保存用户选择的策略组（重启后自动恢复）
+  store-fake-ip: true  # 是否保存 Fake-IP 映射表（重启后保留DNS缓存）
+  
+# 控制面板
+external-controller: 0.0.0.0:9090 # 控制面板地址，用于 Web UI 和 API 访问，0.0.0.0:9090 表示监听所有网卡的 9090 端口
+secret: "147369"  # 控制面板访问密码
+external-ui: ui  # API面板路径
+external-ui-name: zashboard   #API面板名，配合路径拼成访问路径，例如http://{{external-controller}}/ui/zashboard
+external-ui-url: "https://github.shanetian.top/https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"   # UI下载地址
+
+# Geo 数据库下载地址
+geodata-mode: true   #GeoIP 数据模式,true表示DAT，false表示MMDB
+geodata-loader: standard      #GeoData 加载器
+geo-auto-update: true  # 是否自动更新 geodata数据库
+geo-update-interval: 48 # 更新间隔，单位：小时
+geox-url: # GEO数据库下载地址，内核会按需下载，未被使用的数据库不会被下载，采用star最多的v2ray项目，修bug很快
+  geoip: "https://github.shanetian.top/https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+  geosite: "https://github.shanetian.top/https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+  mmdb: "https://github.shanetian.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb"
+  asn: "https://github.shanetian.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb"
+
+
+# 嗅探（fakeip下其实可以不用嗅探）
+sniffer:   # 嗅探器可以通过分析流量内容还原真实域名，提高分流准确性
+  enable: true  # 是否启用嗅探功能
+  sniff:  # 嗅探协议配置
+    HTTP: # HTTP 协议嗅探
+      ports: [80, 8080-8880]     # HTTP 常用端口范围
+      override-destination: true # 强制对这些域名进行嗅探（即使已经有目标地址）
+    TLS:  #TLS 协议嗅探（HTTPS）
+      ports: [443, 8443]  # 常用(替代)HTTPS端口
+    QUIC: #QUIC 协议嗅探（HTTP/3）
+      ports: [443, 8443]    # TLS 协议嗅探（HTTPS）
+  force-domain:  # 强制对这些域名进行嗅探（即使已经有目标地址）
+   - "+.netflix.com"  # Netflix 主域名
+   - "+.nflxvideo.net"  # Netflix CDN
+   - "+.media.dssott.com"  # Disney+ 流媒体
+  skip-domain: # 跳过对这些域名的嗅探（避免干扰）
+    - "Mijia Cloud"  # 米家云服务
+    - "+.apple.com"  # 苹果服务
+    - "+.push.apple.com" # 苹果推送服务
+   
+# 入站  
+tun: # TUN 模式可以接管系统全部流量，实现真正的全局代理
+  enable: true  # 是否启用 TUN 模式
+  stack: mixed  # 网络栈：system（系统栈）/ gvisor（内置用户态栈）/ mixed（混合）
+  device: nikki
+  dns-hijack:   # 劫持配置，劫持所有发往53端口的DNS请求
+    - "any:53"
+    - "tcp://any:53"
+  #使用仅内核自行修改下面三项为true
+  auto-route: false            # 自动配置路由表
+  auto-redirect: false         # 自动配置 iptables 重定向
+  auto-detect-interface: false # 自动检测网络接口
+
+# DNS模块（DNS域名解析现走nameserver-policy，未匹配再走nameserver）
+dns:
+  enable: true # 是否启用内置DNS服务器
+  cache-algorithm: arc
+  listen: 0.0.0.0:1053  # DNS 服务器监听地址，0.0.0.0:1053表示监听所有网卡的1053端口
+  ipv6: true  # 是否解析 IPv6 地址
+  respect-rules: true  # 是否遵循分流规则, 需先配置好 proxy-server-nameserver，强烈不建议和perfer-h3一起使用
+  enhanced-mode: fake-ip    # DNS 增强模式：fake-ip（虚假IP）/ redir-host（真实IP） 
+  fake-ip-range: 28.0.0.1/8 # Fake-IP 地址池范围（私有地址段，不会与真实IP冲突）
+  fake-ip-filter-mode: blacklist # 过滤模式：blacklist（黑名单）/ whitelist（白名单）,黑名单下，filter内容将使用redir-host解析,黑名单下，filter内容将使用redir-host解析
+  fake-ip-filter: # Fake-IP 过滤列表（这些域名将返回真实IP而非Fake-IP）
+    - '+.lan'   # 局域网域名
+    - "rule-set:fakeipfilter_domain"  #rule-providers中的名为fakeipfilter_domain规则订阅
+  default-nameserver:  # 默认DNS服务器（用于解析其他DNS服务器域名），必须使用IP地址或支持DoT的服务器
+    - 119.29.29.29   #腾讯DNS
+    - 114.114.114.114  # 114 公共 DNS
+    - tls://223.5.5.5:853  # 阿里云 DoT
+  nameserver: # 主 DNS 服务器列表（用于实际域名解析）
+    - https://dns.alidns.com/dns-query # 阿里云 DoH
+    - https://doh.pub/dns-query  # 腾讯 DoH
+  proxy-server-nameserver:  # 专用于节点域名解析的DNS服务器
+    - https://dns.alidns.com/dns-query # 阿里云 DoH
+    - https://doh.pub/dns-query # 腾讯 DoH
+  nameserver-policy:  # 优先级高于nameserver,
+    "dns.aliyun.com":
+      - 223.5.5.5
+    "dot.pub":
+      - 119.29.29.29
+    "doh.pub":
+      - 119.29.29.29
+    "dns.pub":
+      - 119.29.29.29
+    "doh.360.cn":
+      - 101.198.198.198
+    "rule-set:alibaba_class":
+      -  https://dns.alidns.com/dns-query 
+    "rule-set:tencent_class":
+      - https://doh.pub/dns-query
+    "rule-set:bilibili_class":
+     - https://doh.pub/dns-query
+    "rule-set:xiaomi_class":
+      - https://doh.pub/dns-query
+    "rule-set:bytedance_class":
+      - 180.184.2.2
+    "rule-set:baidu_class":
+      - 180.76.76.76
+    "rule-set:qihoo360_class":
+      - https://doh.360.cn/dns-query
+    "rule-set:hotspot captive portal_class":
+      - system
+    "injections.adguard.org,local.adguard.org":
+      - system
+    "rule-set:lan without real IP_class":
+      - system
+    "rule-set:lan with real IP_class":
+      - system
+
+#host设置
+hosts:  #在此可以手动指定一些fakeip以强制分流
+  dns.alidns.com:
+    - 223.5.5.5
+    - 223.6.6.6
+    - 2400:3200:baba::1
+    - 2400:3200::1
+  cdn.jsdelivr.net: cdn.jsdelivr.net.cdn.cloudflare.net 
+
+# 出站策略，锚点见yaml的顶部。
+proxy-groups:
+  # 媒体服务
+  - {name: Emby,     <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Emby.png}
+  - {name: YouTube, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/YouTube.png}
+  - {name: Google, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Google_Search.png}
+  - {name: ChatGPT, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/ChatGPT.png}
+  - {name: GitHub, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/GitHub.png}
+  - {name: OneDrive, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/OneDrive.png}
+  - {name: Microsoft, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png}
+  - {name: TikTok, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/TikTok.png}
+  - {name: Telegram, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Telegram_X.png}
+  - {name: NETFLIX, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Netflix.png}
+  - {name: PayPal, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/PayPal.png}
+  - {name: Apple, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple.png}
+  
+# 主选择组
+  - {name: 节点选择, <<: *SelectProxy, url: http://connectivitycheck.platform.hicloud.com/generate_204, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Static.png}
+  - {name: 兜底流量, <<: *SelectProxy, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Final.png}
+  - {name: 直接连接,  type: select, proxies: [直连, 智能选择], hidden: true, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Direct.png}
+  
+#自动选择策略组
+  - {name: 智能选择,  type: select, proxies: [  香港节点, 日本节点,  韩国节点, 加坡节点, 美国节点, 台湾节点, 欧盟节点], icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/ULB.png}
+
+# 地区策略组
+  - {name: 香港节点, type: select, proxies: [♻️香港自动, 香港故转, 🔯香港均衡],include-all: true, filter: *FilterHK, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Hong_Kong.png}
+  - {name: 日本节点, type: select, proxies: [♻️日本自动, 日本故转, 🔯日本均衡], include-all: true, filter: *FilterJP, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png}
+  - {name: 加坡节点, type: select, proxies: [♻️加坡自动, 加坡故转, 🔯加坡均衡], include-all: true, filter: *FilterSG, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Singapore.png}
+  - {name: 美国节点, type: select, proxies: [♻️美国自动, 美国故转, 🔯美国均衡], include-all: true, filter: *FilterUS, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png}
+  - {name: 台湾节点, type: select, proxies: [♻️台湾自动, 台湾故转, 🔯台湾均衡], include-all: true, filter: *FilterTW, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png}
+  - {name: 韩国节点, type: select, proxies: [♻️韩国自动, 韩国故转, 🔯韩国均衡], include-all: true, filter: *FilterKR, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Korea.png }
+  - {name: 欧盟节点, type: select, proxies: [♻️欧盟自动, 欧盟故转, 🔯欧盟均衡], include-all: true, filter: *FilterEU, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/European_Union.png}
+
+  #自动测速组
+  - {name: ♻️香港自动, <<: *UrlTest, include-all: true, filter: *FilterHK}
+  - {name: ♻️台湾自动, <<: *UrlTest, include-all: true, filter: *FilterTW}
+  - {name: ♻️日本自动, <<: *UrlTest, include-all: true, filter: *FilterJP}
+  - {name: ♻️加坡自动, <<: *UrlTest, include-all: true, filter: *FilterSG}
+  - {name: ♻️美国自动, <<: *UrlTest, include-all: true, filter: *FilterUS}
+  - {name: ♻️韩国自动, <<: *UrlTest, include-all: true, filter: *FilterKR}
+  - {name: ♻️欧盟自动, <<: *UrlTest, include-all: true, filter: *FilterEU}
+
+  # 故障转移 
+  - {name: 香港故转, <<: *FallBack, filter: *FilterHK}
+  - {name: 日本故转, <<: *FallBack, filter: *FilterJP}
+  - {name: 加坡故转, <<: *FallBack, filter: *FilterSG}
+  - {name: 韩国故转, <<: *FallBack, filter: *FilterKR}
+  - {name: 美国故转, <<: *FallBack, filter: *FilterUS}
+  - {name: 台湾故转, <<: *FallBack, filter: *FilterTW}
+  - {name: 欧盟故转, <<: *FallBack, filter: *FilterEU}
+  
+   # 负载均衡
+  - {name: 🔯香港均衡, <<: *LoadBalance, include-all: true, filter: *FilterHK}
+  - {name: 🔯台湾均衡, <<: *LoadBalance, include-all: true, filter: *FilterTW}
+  - {name: 🔯加坡均衡, <<: *LoadBalance, include-all: true, filter: *FilterSG}
+  - {name: 🔯日本均衡, <<: *LoadBalance, include-all: true, filter: *FilterJP}
+  - {name: 🔯韩国均衡, <<: *LoadBalance, include-all: true, filter: *FilterKR}
+  - {name: 🔯美国均衡, <<: *LoadBalance, include-all: true, filter: *FilterUS}
+  - {name: 🔯欧盟均衡, <<: *LoadBalance, include-all: true, filter: *FilterEU}
+
+#其他策略组
+  - {name: 全部节点, type: select, include-all: true, icon: https://github.shanetian.top/https://github.com/Koolson/Qure/raw/master/IconSet/Color/Clubhouse.png}
+  - {name: 直连,     type: select, proxies: [DIRECT]}
+
+
+#分流规则
+# 规则从上到下匹配，匹配到第一条后停止。格式：类型,匹配内容,策略组[,no-resolve]
+# GEOSITE=域名分类,GEOIP=IP归属,RULE-SET=外部规则集,MATCH=兜底规则
+# no-resolve=不进行DNS解析直接匹配IP（提高性能，避免DNS泄露）
+rules:
+  # 单独匹配
+  #- PROCESS-NAME,curl,PROXY  #进程应用匹配
+  #- SRC-IP-CIDR,192.168.1.201/32,DIRECT  #单个IP选择连接方式
+  - DOMAIN-SUFFIX,shanetian.top,直连
+  
+  # 拦截规则
+  - RULE-SET,Tracking,REJECT  #拦截用户行为分析、数据收集服务，保护隐私安全
+  - RULE-SET,Advertising,REJECT  #拦截各类广告投放、统计追踪服务，包含国内外主流广告平台
+  - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT  # 阻止海外 QUIC
+  
+  # 域名规则
+  - RULE-SET,private_domain, 直连
+  - RULE-SET,ai, ChatGPT
+  - RULE-SET,github_domain, GitHub
+  - RULE-SET,youtube_domain, YouTube
+  - RULE-SET,google_domain, Google
+  - RULE-SET,onedrive_domain, OneDrive
+  - RULE-SET,microsoft_domain, Microsoft
+  - RULE-SET,apple_domain, Apple
+  - RULE-SET,tiktok_domain, TikTok
+  - RULE-SET,telegram_domain, Telegram
+  - RULE-SET,netflix_domain, NETFLIX
+  - RULE-SET,paypal_domain, PayPal
+  - RULE-SET,gfw_domain,节点选择
+  - RULE-SET,geolocation-!cn,节点选择
+  - RULE-SET,cn_domain,直连
+
+  # IP规则
+  - RULE-SET,advertising_IP,REJECT,no-resolve
+  - RULE-SET,private_IP,节点选择,no-resolve
+  - RULE-SET,apple_IP,直连
+  - RULE-SET,google_IP, Google,no-resolve
+  - RULE-SET,netflix_IP, NETFLIX,no-resolve
+  - RULE-SET,telegram_IP, Telegram,no-resolve
+  - RULE-SET,cn_IP,直连,no-resolve
+ 
+  # 兜底规则
+  - MATCH,兜底流量
+
+# 规则集
+rule-anchor:
+  IP: &IP {type: http, interval: 86400, behavior: ipcidr, format: mrs}
+  domain: &domain {type: http, interval: 86400, behavior: domain, format: mrs}
+  class: &class {type: http, interval: 86400, behavior: classical, format: text}
+rule-providers: 
+  # 域名规则
+  fakeipfilter_domain: {<<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/wwqgtxx/clash-rules/release/fakeip-filter.mrs"}
+  Tracking: {<<: *domain, url: https://github.shanetian.top/https://github.com/666OS/rules/raw/release/mihomo/domain/Tracking.mrs}
+  Advertising: {<<: *domain, url: https://github.shanetian.top/https://github.com/666OS/rules/raw/release/mihomo/domain/Advertising.mrs}
+  private_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"}
+  ai: {  <<: *domain, url: "https://github.shanetian.top/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-!cn.mrs" }
+  youtube_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"}
+  google_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"}
+  github_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs"}
+  telegram_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs"}
+  netflix_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.mrs"}
+  paypal_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/paypal.mrs"}
+  onedrive_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs"}
+  microsoft_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs"}
+  apple_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple-cn.mrs"}
+  speedtest_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/ookla-speedtest.mrs"}
+  tiktok_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/tiktok.mrs"}
+  gfw_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs"}
+  geolocation-!cn: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"}
+  cn_domain: { <<: *domain, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"}
+  alibaba_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/alibaba.txt"}
+  tencent_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/tencent.txt"}
+  bilibili_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/bilibili.txt"}
+  xiaomi_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/xiaomi.txt"}
+  bytedance_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/bytedance.txt"}
+  baidu_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/baidu.txt"}
+  qihoo360_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/qihoo360.txt"}
+  hotspot captive portal_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/hotspot_captive_portal.txt"}
+  lan without real IP_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/lan_without_real_ip.txt"}
+  lan with real IP_class: {<<: *class, url: "https://ruleset.skk.moe/Internal/mihomo_nameserver_policy/lan_with_realip.txt"}
+
+  # IP规则
+  advertising_IP:  {<<: *IP, url: https://github.shanetian.top/https://github.com/666OS/rules/raw/release/mihomo/ip/Advertising.mrs}
+  private_IP: {<<: *IP, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"}
+  cn_IP: { <<: *IP, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"}
+  google_IP: { <<: *IP, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs"}
+  telegram_IP: { <<: *IP, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs"}
+  netflix_IP: { <<: *IP, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.mrs"}
+  apple_IP: {<<: *IP, url: "https://github.shanetian.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo-lite/geoip/apple.mrs"}
